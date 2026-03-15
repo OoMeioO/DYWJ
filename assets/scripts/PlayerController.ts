@@ -1,76 +1,54 @@
-// 玩家控制器组件
-import { _decorator, Component, KeyCode, Node, UITransform } from 'cc';
-const { ccclass } = _decorator;
+// 修仙游戏 - 玩家移动组件
+import { _decorator, Component, input, Input, KeyCode, Vec3, tween } from 'cc';
+const { ccclass, property } = _decorator;
 
 @ccclass('PlayerController')
 export class PlayerController extends Component {
-    playerIndex = 0;
-    private speed = 200;
-    private size = 32;
+    @property({ type: Number, displayName: '移动速度' })
+    moveSpeed: number = 200;
 
-    move(keys: Set<number>, obstacles: Node[], deltaTime: number) {
+    private _keys: Set<number> = new Set();
+    private _animState: string = 'idle';
+
+    onLoad() {
+        // 监听键盘输入
+        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+        input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
+        console.log('[PlayerController] 玩家组件已加载');
+    }
+
+    onKeyDown(event: any) {
+        this._keys.add(event.keyCode);
+    }
+
+    onKeyUp(event: any) {
+        this._keys.delete(event.keyCode);
+    }
+
+    update(deltaTime: number) {
         let dx = 0;
         let dy = 0;
 
-        // WASD 控制 (玩家1)
-        if (this.playerIndex === 0) {
-            if (keys.has(KeyCode.KEY_A)) dx = -1;
-            if (keys.has(KeyCode.KEY_D)) dx = 1;
-            if (keys.has(KeyCode.KEY_W)) dy = 1;
-            if (keys.has(KeyCode.KEY_S)) dy = -1;
-        }
-        // 方向键控制 (玩家2)
-        else if (this.playerIndex === 1) {
-            if (keys.has(KeyCode.ARROW_LEFT)) dx = -1;
-            if (keys.has(KeyCode.ARROW_RIGHT)) dx = 1;
-            if (keys.has(KeyCode.ARROW_UP)) dy = 1;
-            if (keys.has(KeyCode.ARROW_DOWN)) dy = -1;
-        }
-        // 玩家3: IJKL
-        else if (this.playerIndex === 2) {
-            if (keys.has(KeyCode.KEY_J)) dx = -1;
-            if (keys.has(KeyCode.KEY_L)) dx = 1;
-            if (keys.has(KeyCode.KEY_I)) dy = 1;
-            if (keys.has(KeyCode.KEY_K)) dy = -1;
-        }
-        // 玩家4: 8456 (数字键盘)
-        else if (this.playerIndex === 3) {
-            if (keys.has(KeyCode.NUM_4)) dx = -1;
-            if (keys.has(KeyCode.NUM_6)) dx = 1;
-            if (keys.has(KeyCode.NUM_8)) dy = 1;
-            if (keys.has(KeyCode.NUM_5)) dy = -1;
-        }
+        // WASD 移动
+        if (this._keys.has(KeyCode.KEY_W)) dy = 1;
+        if (this._keys.has(KeyCode.KEY_S)) dy = -1;
+        if (this._keys.has(KeyCode.KEY_A)) dx = -1;
+        if (this._keys.has(KeyCode.KEY_D)) dx = 1;
 
         if (dx !== 0 || dy !== 0) {
-            // 归一化
-            const length = Math.sqrt(dx * dx + dy * dy);
-            dx = (dx / length) * this.speed * deltaTime;
-            dy = (dy / length) * this.speed * deltaTime;
+            // 归一化移动向量
+            const len = Math.sqrt(dx * dx + dy * dy);
+            dx = (dx / len) * this.moveSpeed * deltaTime;
+            dy = (dy / len) * this.moveSpeed * deltaTime;
 
-            const newPos = this.node.position.clone();
-            newPos.x += dx;
-            newPos.y += dy;
-
-            // 边界检查
-            newPos.x = Math.max(16, Math.min(784, newPos.x));
-            newPos.y = Math.max(16, Math.min(584, newPos.y));
-
-            // 简单的碰撞检测
-            let canMove = true;
-            for (const obs of obstacles) {
-                const obsPos = obs.position;
-                const obsSize = obs.getComponent(UITransform)!.contentSize;
-                
-                if (Math.abs(newPos.x - obsPos.x) < (this.size + obsSize.width) / 2 &&
-                    Math.abs(newPos.y - obsPos.y) < (this.size + obsSize.height) / 2) {
-                    canMove = false;
-                    break;
-                }
-            }
-
-            if (canMove) {
-                this.node.setPosition(newPos);
-            }
+            // 更新位置
+            const pos = this.node.position;
+            this.node.setPosition(pos.x + dx, pos.y + dy, pos.z);
         }
+    }
+
+    onDestroy() {
+        input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+        input.off(Input.EventType.KEY_UP, this.onKeyUp, this);
     }
 }
