@@ -1,5 +1,5 @@
 // 游戏主场景
-import { _decorator, Component, Vec3, Input, input, KeyCode, Sprite, Node, UITransform, Size, Color } from 'cc';
+import { _decorator, Component, Vec3, Input, input, KeyCode, Sprite, Node, UITransform, Size, Color, resources, SpriteFrame, assetManager } from 'cc';
 import { PlayerController } from './PlayerController';
 
 const { ccclass, property } = _decorator;
@@ -17,13 +17,17 @@ export class GameScene extends Component {
     private keys: Set<number> = new Set();
 
     start() {
+        console.log('[GameScene] start called!');
         this.createMap();
         this.createPlayers();
         this.setupInput();
+        console.log('[GameScene] Initialization complete!');
     }
 
     // 创建地图和障碍物
     createMap() {
+        console.log('[GameScene] Creating map...');
+        
         // 创建边界障碍物
         this.createObstacle(400, 0, 800, 20); // 上
         this.createObstacle(400, 600, 800, 20); // 下
@@ -39,6 +43,8 @@ export class GameScene extends Component {
                 this.createObstacle(x, y, 40, 40);
             }
         }
+        
+        console.log('[GameScene] Map created, obstacles:', this.obstacles.length);
     }
 
     // 创建单个障碍物
@@ -49,6 +55,9 @@ export class GameScene extends Component {
         const sprite = obstacle.addComponent(Sprite);
         sprite.color = new Color(139, 119, 101, 255); // 棕色
         
+        // 创建一个简单的白色精灵作为默认精灵
+        this.createDefaultSprite(sprite);
+        
         const transform = obstacle.getComponent(UITransform);
         transform.setContentSize(new Size(width, height));
         
@@ -56,8 +65,25 @@ export class GameScene extends Component {
         this.obstacles.push(obstacle);
     }
 
+    // 创建默认精灵
+    private createDefaultSprite(spriteComponent: Sprite) {
+        // 使用引擎内置的默认精灵
+        try {
+            // 尝试从资源加载默认精灵
+            resources.load('internal/default-ui/sprite', SpriteFrame, (err, frame) => {
+                if (!err && frame) {
+                    spriteComponent.spriteFrame = frame;
+                }
+            });
+        } catch (e) {
+            console.log('[GameScene] Using color only, no sprite frame');
+        }
+    }
+
     // 创建4个玩家
     createPlayers() {
+        console.log('[GameScene] Creating players...');
+        
         const colors = [
             new Color(255, 0, 0, 255),    // 红
             new Color(0, 255, 0, 255),    // 绿
@@ -79,6 +105,9 @@ export class GameScene extends Component {
             const sprite = player.addComponent(Sprite);
             sprite.color = colors[i];
             
+            // 创建默认精灵
+            this.createDefaultSprite(sprite);
+            
             const transform = player.getComponent(UITransform);
             transform.setContentSize(new Size(32, 32));
             
@@ -88,11 +117,16 @@ export class GameScene extends Component {
             
             this.node.addChild(player);
             this.players.push(player);
+            
+            console.log(`[GameScene] Player ${i} created at position:`, startPositions[i]);
         }
+        
+        console.log('[GameScene] Players created:', this.players.length);
     }
 
     // 设置输入
     setupInput() {
+        console.log('[GameScene] Setting up input...');
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
         input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
     }
